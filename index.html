@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Cooking Chaos — Hot Wok Studios</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD Layer -->
+    <div id="hud-root">
+      <!-- Top-Left: Roblox Topbar -->
+      <div id="roblox-topbar">
+        <button id="btn-menu" class="rbx-top-btn" type="button" title="Menu (Esc)">☰</button>
+        <button id="btn-audio" class="rbx-top-btn" type="button" title="Toggle Sound & Music">🔊</button>
+        <button id="btn-class-badge" class="rbx-class-pill" type="button" title="Open RNG Chef Class Wheel">
+          <span id="class-badge-icon">🔪</span>
+          <span id="class-badge-name">Novice Chopper</span>
+          <span class="rbx-class-spin">🎰</span>
+        </button>
+      </div>
+
+      <!-- Top-Left Row 2: Horizontal Order Queue -->
+      <div id="order-queue" aria-label="Active Dish Orders"></div>
+
+      <!-- Touch-only Top-Right Compact Stats Mirror (keeps bottom corners 100% open for thumbs!) -->
+      <div id="top-right-touch-hud">
+        <div class="t-stat-pill">
+          <span class="coin-ico">🪙</span>
+          <span id="t-coin-val">$60</span>
+          <span id="t-tip-pill" class="tip-pill" data-mult="1">x1 TIP</span>
+        </div>
+        <div class="t-timer-pill">
+          <span class="t-hg">⌛</span>
+          <div class="t-timer-col">
+            <span id="t-timer-text">02:00</span>
+            <div class="t-timer-bar"><div id="t-timer-fill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Alerts: Urgent Fire Banner + Toast -->
+      <div id="center-alerts">
+        <div id="fire-banner" class="hidden">🔥 PUT OUT THE FIRE! 🔥</div>
+        <div id="toast-banner" class="hidden"></div>
+      </div>
+
+      <!-- Right-Center: Vertical Performance Thermometer with Chef Toque -->
+      <div id="thermo-hud" aria-label="Combo Thermometer">
+        <div class="thermo-tube">
+          <div id="thermo-fill"></div>
+          <div id="thermo-toque">👨‍🍳</div>
+        </div>
+        <div id="thermo-label">x1</div>
+      </div>
+
+      <!-- Desktop Bottom-Left: Golden Coin Counter + Tip Multiplier Pill -->
+      <div id="bottom-left-hud">
+        <div class="coin-card">
+          <div class="coin-icon-wrap">🪙</div>
+          <div class="coin-info">
+            <div id="tip-pill" class="tip-pill" data-mult="1">x1 TIP</div>
+            <div id="coin-val">$60</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop Bottom-Center: Clean Keybind Bar -->
+      <div id="key-hints-bar">
+        <span><b>WASD</b> Move</span>
+        <span><b>E / Space</b> Pick · Plate · Serve</span>
+        <span><b>F</b> Chop · Spray Fire</span>
+        <span><b>Shift</b> Dash</span>
+      </div>
+
+      <!-- Desktop Bottom-Right: Round Match Timer + Hourglass + Yellow Drain Bar -->
+      <div id="bottom-right-hud">
+        <div class="timer-card">
+          <div id="timer-hourglass" class="timer-hg">⌛</div>
+          <div class="timer-body">
+            <div id="timer-text">02:00</div>
+            <div class="timer-bar-track">
+              <div id="timer-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- World-Space Overlays (Progress Bars & Floating +$45 Popups) -->
+      <div id="world-bars"></div>
+      <div id="float-pops"></div>
+
+      <!-- iPad / Mobile Translucent Roblox Touch Controls -->
+      <div id="touch-controls" class="hidden">
+        <div id="touch-stick-zone">
+          <div id="touch-stick-base">
+            <div id="touch-stick-knob"></div>
+          </div>
+        </div>
+        <div id="touch-right-btns">
+          <button id="btn-touch-dash" class="rbx-touch-dash" type="button">
+            <span>DASH</span>
+            <div id="dash-cd-ring"></div>
+          </button>
+          <button id="btn-touch-action" class="rbx-touch-action" type="button">PICK UP</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Backdrop -->
+    <div id="modal-backdrop" class="hidden">
+      <!-- Roblox Menu Modal -->
+      <div id="modal-menu" class="rbx-modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2>🍳 Cooking Chaos Menu</h2>
+          <button class="modal-close" type="button" data-close-modal>✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="menu-row">
+            <span>Bistro Music</span>
+            <button id="btn-toggle-music" class="rbx-toggle on" type="button">ON</button>
+          </div>
+          <div class="menu-row">
+            <span>Kitchen SFX</span>
+            <button id="btn-toggle-sfx" class="rbx-toggle on" type="button">ON</button>
+          </div>
+          <div class="menu-row">
+            <span>Touch Controls</span>
+            <button id="btn-toggle-touch" class="rbx-toggle" type="button">AUTO</button>
+          </div>
+          <div class="menu-row">
+            <span>Sous-Chef Auto-Prep Boost</span>
+            <button id="btn-toggle-sous" class="rbx-toggle" type="button">OFF</button>
+          </div>
+          <div class="menu-actions">
+            <button id="btn-menu-class-wheel" class="rbx-btn-gold" type="button">🎰 RNG Chef Class Wheel</button>
+            <button id="btn-menu-restart" class="rbx-btn-green" type="button">🔄 Restart Shift</button>
+            <button id="btn-reset-save" class="rbx-btn-danger" type="button">Reset Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- End-of-Shift 3-Star Rating Card Modal -->
+      <div id="modal-shift-end" class="rbx-modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2 id="end-title">SHIFT #1 COMPLETE!</h2>
+        </div>
+        <div class="modal-body end-body">
+          <div id="end-stars-row" class="end-stars">
+            <span class="end-star">★</span>
+            <span class="end-star">★</span>
+            <span class="end-star">★</span>
+          </div>
+          <div class="end-stats-grid">
+            <div class="end-stat">
+              <div class="es-lbl">Shift Coins</div>
+              <div id="end-coins" class="es-val gold">$0</div>
+            </div>
+            <div class="end-stat">
+              <div class="es-lbl">Orders Served</div>
+              <div id="end-served" class="es-val">0</div>
+            </div>
+            <div class="end-stat">
+              <div class="es-lbl">Peak Multiplier</div>
+              <div id="end-peak-tip" class="es-val green">x1 TIP</div>
+            </div>
+            <div class="end-stat">
+              <div class="es-lbl">Active Class</div>
+              <div id="end-class-name" class="es-val">🔪 Novice Chopper</div>
+            </div>
+          </div>
+          <div class="end-actions">
+            <button id="btn-end-roll-class" class="rbx-btn-gold" type="button">🎰 ROLL CLASS (FREE!)</button>
+            <div class="end-row-btns">
+              <button id="btn-end-retry" class="rbx-btn-dark" type="button">Retry Shift</button>
+              <button id="btn-end-next" class="rbx-btn-green" type="button">Next Shift ▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RNG Chef Class Gacha Wheel Modal -->
+      <div id="modal-gacha" class="rbx-modal gacha-modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2>🎰 Chef Class Gacha Wheel</h2>
+          <button class="modal-close" type="button" data-close-modal>✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="gacha-top-info">
+            <span>Coins: <strong id="gacha-coins" class="gold">$60</strong></span>
+            <span>Equipped: <strong id="gacha-equipped">🔪 Novice Chopper</strong></span>
+          </div>
+          <div class="gacha-viewport">
+            <div class="gacha-pointer">▼</div>
+            <div id="gacha-track" class="gacha-track"></div>
+          </div>
+          <div id="gacha-result-box" class="gacha-result">Spin the wheel to unlock & equip a Chef Class!</div>
+          <div class="gacha-actions">
+            <button id="btn-luck-boost" class="rbx-btn-purple" type="button">🍀 +30% LUCK ($40)</button>
+            <button id="btn-roll-class" class="rbx-btn-gold" type="button">🎰 ROLL CLASS (FREE!)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
